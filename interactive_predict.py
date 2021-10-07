@@ -40,6 +40,7 @@ class InteractivePredictor:
     def predict(self, path_folder):
         files_list = list(Path(path_folder).glob('*.java'))
         predictions_with_ranks = defaultdict(list)
+        df = pd.DataFrame(columns=['filename', 'method_name', 'confidence', 'exc'])
         for input_filename in files_list:
             file_name_str = str(input_filename)
             # input_filename = Path('temp.java')
@@ -63,20 +64,25 @@ class InteractivePredictor:
                 #with open('inspect.txt', 'w') as w:
                     #w.write(inspect.getsource(self.model))
                 #start_predict = time.time()
-                raw_prediction_results = self.model.predict(predict_lines)
+                try:
+                    raw_prediction_results = self.model.predict(predict_lines)
                 #end = time.time()
                 #p_predict = end - start_predict
                 #self.predict_d[file_name_str] = p_predict
                 #print(f'Time passed: {p} for {file_name_str}')
 
-                method_prediction_results = common.parse_prediction_results(
-                    raw_prediction_results, hash_to_string_dict,
-                    self.model.vocabs.target_vocab.special_words, topk=SHOW_TOP_CONTEXTS)
-                for raw_prediction, method_prediction in zip(raw_prediction_results, method_prediction_results):
-                    print('Original name:\t' + method_prediction.original_name)
-                    for name_prob_pair in method_prediction.predictions:
-                        print('\t(%f) predicted: %s' % (name_prob_pair['probability'], name_prob_pair['name']))
-                        predictions_with_ranks[file_name_str].append((name_prob_pair['probability'], name_prob_pair['name']))
+                    method_prediction_results = common.parse_prediction_results(
+                        raw_prediction_results, hash_to_string_dict,
+                        self.model.vocabs.target_vocab.special_words, topk=SHOW_TOP_CONTEXTS)
+                    for raw_prediction, method_prediction in zip(raw_prediction_results, method_prediction_results):
+                        print('Original name:\t' + method_prediction.original_name)
+                        for name_prob_pair in method_prediction.predictions:
+                            print('\t(%f) predicted: %s' % (name_prob_pair['probability'], name_prob_pair['name']))
+                            #predictions_with_ranks[file_name_str].append((name_prob_pair['probability'], name_prob_pair['name']))
+                            df = df.append({'filename': file_name_str, 'method_name': name_prob_pair['name'], 'confidence': name_prob_pair['probability'], 'exc': None},ignore_index=True)
+                except Exception as e:
+                    df = df.append({'filename': file_name_str, 'method_name': None, 'confidence': None, 'exc': str(e)},ignore_index=True)
+                    
         #total_time_for_redis = sum(self.redis.values()) + sum(self.predict_d.values())
         #total_time_for_java = sum(self.java.values()) + sum(self.predict_d.values())
         #all_res = json.dumps(self.results)
@@ -93,6 +99,6 @@ class InteractivePredictor:
             #'total_time_java': predict_time + java_time, 
             #'total_time_redis': predict_time + redis_time, 
             #}, ignore_index=True)
-        #df.to_csv('res.csv')
-        with open('predicted_dict.json', 'w') as w:
-            json.dump(predictions_with_ranks, w)
+        df.to_csv('anton.csv')
+        #with open('predicted_dict.json', 'w') as w:
+            #json.dump(predictions_with_ranks, w)

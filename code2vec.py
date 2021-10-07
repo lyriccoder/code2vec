@@ -21,7 +21,7 @@ if __name__ == '__main__':
     config.log('Done creating code2vec model')
 
     predictor = InteractivePredictor(config, model)
-    folder = Path('dataset')
+    folder = Path('dataset_anton')
     #print(f'Type {predictor}')
     #print(f'folder {folder}')
     predictor.predict(folder)
